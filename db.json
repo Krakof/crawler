@@ -27,7 +27,7 @@
 	keywords: "key1 key2 key3",
 	metaKeywords: "metakey1 metakey2 metakey3",
 	status: "queued",
-	queuedTime: "02:39"	
+	queuedTime: new Date();
 },
 {
 	domain: "domain4.com/page",
