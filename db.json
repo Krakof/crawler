@@ -27,7 +27,7 @@
 	keywords: "key1 key2 key3",
 	metaKeywords: "metakey1 metakey2 metakey3",
 	status: "queued",
-	queuedTime: new Date();
+	queuedTime: new Date()
 },
 {
 	domain: "domain4.com/page",
@@ -48,6 +48,17 @@
 	keywords: "key1 key2 key3",
 	metaKeywords: "metakey1 metakey2 metakey3",
 	status: "queued",
-	queuedTime: "16:52"	
+	queuedTime: new Date()
 },
+  {
+	domain: "domain6.com/page",
+	originDomain: "domain6.com",
+	engine: "Presta",
+	pr: 8,
+	trustflow: 356,
+	keywords: "key1 key2 key3",
+	metaKeywords: "metakey1 metakey2 metakey3",
+	status: "queued",
+	queuedTime: new	Date()
+  }
 ]
