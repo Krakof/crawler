@@ -52,6 +52,11 @@ http.createServer(function (req, res) {
                 console.log("PUT");
                 req.on('data', function (chunk) {
                     jsonPut = JSON.parse(chunk);
+                    for (var key in schema) {
+                        for (var i= 0; i < schema[key].length; i++){
+                            var isTrue = this[schema[key][i] + "Validate"](jsonPut[key]);
+                        }
+                    }
                     console.log(jsonPut);
                     db.close();
                 });
