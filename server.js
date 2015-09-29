@@ -1,16 +1,63 @@
 var http = require('http');
+var url = require("url");
+var MongoClient = require('mongodb').MongoClient
+    , assert = require('assert');
 
 http.createServer(function (req, res) {
 
-    var MongoClient = require('mongodb').MongoClient
-        , assert = require('assert');
     // Connection URL
-    var url = 'mongodb://localhost:27017/crawler';
+    var urlDb = 'mongodb://localhost:27017/crawler';
+    //var parsedJson = JSON.parse(req); // true to get query as object
 
     // Use connect method to connect to the Server
-    MongoClient.connect(url, function(err, db) {
+    MongoClient.connect(urlDb, function(err, db) {
         if (err) throw err;
         var blogs = db.collection("Blogs");
+        var halfHour = new Date(new Date() - new Date(30*60000));
+        //console.log(halfHour);
+        var jsonGet = {},
+            jsonPut = {};
+        var schema = {
+            domain: ["required", "string"],
+            originDomain: ["required", "string"],
+            engine: ["required", "string"],
+            pr: ["required", "integer"],
+            trustflow: ["required", "integer"],
+            keywords: ["required", "string"],
+            metaKeywords: ["required", "string"],
+            status: ["required", "string"]
+        };
+        function requiredValidate(elem) {
+           return !elem;
+        }
+        function stringValidate (elem){
+                return typeof elem === "string";
+        }
+        function integerValidate (elem){
+            return typeof elem === "integer";
+        }
+        switch(req.method) {
+            case 'GET':
+                blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
+                    .toArray(function (err,results) {
+                        //console.dir(results);
+                        jsonGet = JSON.stringify(results);
+                        res.writeHead(200, {"Content-Type": "application/json"});
+                        res.end(jsonGet);
+                        console.log("GET");
+                        db.close();
+                    });
+                break;
+            case 'PUT':
+                console.log("PUT");
+                req.on('data', function (chunk) {
+                    jsonPut = JSON.parse(chunk);
+                    console.log(jsonPut);
+                    db.close();
+                });
+                break;
+        }
+
         //blogs.insert( {
         //    domain: "domain6.com/page",
         //    originDomain: "domain6.com",
@@ -65,17 +112,9 @@ http.createServer(function (req, res) {
         //        status: "queued",
         //        queuedTime: new Date()
         //    }]
-        var halfHour = new Date(new Date() - new Date(30*60000));
-        console.log(halfHour);
-        var json ={};
-        blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
-            .toArray(function (err,results) {
-                //console.dir(results);
-                json = JSON.stringify(results);
-                res.writeHead(200, {"Content-Type": "application/json"});
-                res.end(json);
-                db.close();
-            });
+
+
+        //if (!Object.keys(queryAsObject).length) console.log("Empty obj");
         //});
 
         console.log("Connected correctly to server");
