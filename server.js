@@ -2,6 +2,7 @@ var http = require('http');
 var url = require("url");
 var MongoClient = require('mongodb').MongoClient
     , assert = require('assert');
+var ObjectId = require('mongodb').ObjectID;
 
 http.createServer(function (req, res) {
 
@@ -18,26 +19,76 @@ http.createServer(function (req, res) {
         var jsonGet = {},
             jsonPut = {};
         var schema = {
+            _id:["required", "string", "exist"],
             domain: ["required", "string"],
             originDomain: ["required", "string"],
             engine: ["required", "string"],
-            pr: ["required", "integer"],
-            trustflow: ["required", "integer"],
+            pr: ["required", "number"],
+            trustflow: ["required", "number"],
             keywords: ["required", "string"],
             metaKeywords: ["required", "string"],
             status: ["required", "string"]
         };
-        function requiredValidate(elem) {
-           return !elem;
+        var dataToSave = [];
+        function Validator () {
+            this["requiredValidate"] = function (el) {
+                return (el)||(el === 0)? true:false;
+            };
+
+            this["stringValidate"] = function (el) {
+                return typeof el === "string";
+            };
+
+            this["numberValidate"] = function (el) {
+                return typeof el === "number";
+            };
+            this["existValidate"] = function(el){
+                var matches = blogs.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
+                     //matches = count>0;
+                     console.log(el, count);
+                 });
+                //return matches;
+            };
+            this.validate = function(elem) {
+                var errArr = [];
+                blogs.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
+                    //matches = count>0;
+                    console.log(count);
+                });
+                for (var j=0;j<elem.length;j++) {
+                    var toggle=0;
+                    for (var key in schema) {
+                        for (var i = 0; i < schema[key].length; i++) {
+                            var isTrue = this[schema[key][i] + "Validate"](elem[j][key]);
+
+                            if (!isTrue) {
+                                errArr.push("recordId:" + elem[j]["_id"] + ":" + key + ":" + elem[j][key] + ":" + schema[key][i] + "(" + isTrue + ")");
+                                toggle = 1;
+                            }
+
+                            console.log(elem[j][key] + ":" + schema[key][i]+"("+isTrue+")");
+                        }
+                    }
+                    if (!toggle) dataToSave.push(elem[j]);
+                }
+                console.log(errArr);
+                console.log(dataToSave);
+            };
         }
-        function stringValidate (elem){
-                return typeof elem === "string";
+
+        function writeTo() {
+            blogs.insert(dataToSave);
         }
-        function integerValidate (elem){
-            return typeof elem === "integer";
-        }
+
         switch(req.method) {
             case 'GET':
+                var y =false;
+                var str= "5601201ba7b8dbdf6aaa970c";
+                    blogs.count({_id: ObjectId(str)},function(err, count){
+                    y= count>0;
+                        console.log(str, y, count);
+                });
+                //blogs.find({_id: ObjectId("5601201ba7b8dbdf6aaa970c")})
                 blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
                     .toArray(function (err,results) {
                         //console.dir(results);
@@ -52,12 +103,9 @@ http.createServer(function (req, res) {
                 console.log("PUT");
                 req.on('data', function (chunk) {
                     jsonPut = JSON.parse(chunk);
-                    for (var key in schema) {
-                        for (var i= 0; i < schema[key].length; i++){
-                            var isTrue = this[schema[key][i] + "Validate"](jsonPut[key]);
-                        }
-                    }
-                    console.log(jsonPut);
+                    var valid = new Validator();
+                    valid.validate(jsonPut);
+                    //console.log(jsonPut);
                     db.close();
                 });
                 break;
