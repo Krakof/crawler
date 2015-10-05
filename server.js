@@ -3,19 +3,17 @@ var url = require("url");
 var MongoClient = require('mongodb').MongoClient
     , assert = require('assert');
 var ObjectId = require('mongodb').ObjectID;
+var urlDb = 'mongodb://localhost:27017/crawler';
+var db;
+MongoClient.connect(urlDb, function(err, database) {
+    if (err) throw err;
+    db = database;
+    console.log("Connected correctly to server");
+});
 
 http.createServer(function (req, res) {
-
-    // Connection URL
-    var urlDb = 'mongodb://localhost:27017/crawler';
-    //var parsedJson = JSON.parse(req); // true to get query as object
-
-    // Use connect method to connect to the Server
-    MongoClient.connect(urlDb, function(err, db) {
-        if (err) throw err;
         var blogs = db.collection("Blogs");
         var halfHour = new Date(new Date() - new Date(30*60000));
-        //console.log(halfHour);
         var jsonGet = {},
             jsonPut = {};
         var schema = {
@@ -43,18 +41,24 @@ http.createServer(function (req, res) {
                 return typeof el === "number";
             };
             this["existValidate"] = function(el){
-                var matches = blogs.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
-                     //matches = count>0;
-                     console.log(el, count);
-                 });
-                //return matches;
+                //collection.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
+                //     //matches = count>0;
+                //     console.log(count);
+                // });
+                var matches;
+                blogs.count({_id: ObjectId(el)},function(err,count){
+                    matches = count>0;
+                    console.log(matches);
+                });
+                return matches;
             };
             this.validate = function(elem) {
                 var errArr = [];
-                blogs.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
-                    //matches = count>0;
-                    console.log(count);
-                });
+
+                //blogs.count({status:"new"}, function(err,count){
+                //    //matches = count>0;
+                //    console.log(count);
+                //});
                 for (var j=0;j<elem.length;j++) {
                     var toggle=0;
                     for (var key in schema) {
@@ -72,9 +76,23 @@ http.createServer(function (req, res) {
                     if (!toggle) dataToSave.push(elem[j]);
                 }
                 console.log(errArr);
-                console.log(dataToSave);
+                //console.log(dataToSave);
             };
         }
+
+        //function idValidate(id){
+        //    var matches;
+        //    blogs.count({_id: ObjectId(id)}, function(err,count){
+        //         matches = count>0;
+        //        console.log(count);
+        //     });
+        //    //blogs.find({status: "new"}).toArray(function(err,res) {
+        //    //    //        //matches = count>0;
+        //    //    console.log(res);
+        //    //    //    });
+        //    //    //return matches;
+        //    //});
+        //}
 
         function writeTo() {
             blogs.insert(dataToSave);
@@ -104,9 +122,9 @@ http.createServer(function (req, res) {
                 req.on('data', function (chunk) {
                     jsonPut = JSON.parse(chunk);
                     var valid = new Validator();
+                    //valid["existValidate"] = idValidate;
                     valid.validate(jsonPut);
                     //console.log(jsonPut);
-                    db.close();
                 });
                 break;
         }
@@ -170,9 +188,10 @@ http.createServer(function (req, res) {
         //if (!Object.keys(queryAsObject).length) console.log("Empty obj");
         //});
 
-        console.log("Connected correctly to server");
 
-    });
+        //db.close();
+
+    //});
 
 
 }).listen(2000);
