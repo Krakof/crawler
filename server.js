@@ -1,18 +1,21 @@
 var http = require('http');
 var url = require("url");
+//var async = require("async");
 var MongoClient = require('mongodb').MongoClient
     , assert = require('assert');
 var ObjectId = require('mongodb').ObjectID;
-var urlDb = 'mongodb://localhost:27017/crawler';
-var db;
-MongoClient.connect(urlDb, function(err, database) {
-    if (err) throw err;
-    db = database;
-    console.log("Connected correctly to server");
-});
+var Promise = require('promise');
+var monk = require('monk');
+//var urlDb = 'mongodb://localhost:27017/crawler';
+var db= monk('localhost:27017/crawler');
+//MongoClient.connect(urlDb, function(err, database) {
+//    if (err) throw err;
+//    db = database;
+//    console.log("Connected correctly to server");
+//});
 
 http.createServer(function (req, res) {
-        var blogs = db.collection("Blogs");
+        var blogs = db.get("Blogs");
         var halfHour = new Date(new Date() - new Date(30*60000));
         var jsonGet = {},
             jsonPut = {};
@@ -28,19 +31,32 @@ http.createServer(function (req, res) {
             status: ["required", "string"]
         };
         var dataToSave = [];
+        var countDocs=[];
         function Validator () {
             this["requiredValidate"] = function (el) {
-                return (el)||(el === 0)? true:false;
+                //return (el)||(el === 0)? true:false;
+                return new Promise(function(resolve,reject){
+                    var value = (el)||(el === 0)? true:false;
+                    resolve(objWrap(el,value,"required"));
+                })
             };
 
             this["stringValidate"] = function (el) {
-                return typeof el === "string";
+                return new Promise(function(resolve,reject){
+                    var value = (typeof el === "string");
+                    resolve(objWrap(el,value,"string"));
+                })
             };
 
-            this["numberValidate"] = function (el) {
-                return typeof el === "number";
+            this["numberValidate"] = function (el,key) {
+                return new Promise(function(resolve,reject){
+                    var value = (typeof el === "number");
+                   resolve(objWrap(el,key,value,"number"))
+                });
             };
+
             this["existValidate"] = function(el){
+<<<<<<< HEAD
                 //collection.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
                 //     //matches = count>0;
                 //     console.log(count);
@@ -65,30 +81,49 @@ http.createServer(function (req, res) {
                                 errArr.push("recordId:" + elem[j]["_id"] + ":" + key + ":" + elem[j][key] + ":" + schema[key][i] + "(" + isTrue + ")");
                                 toggle = 1;
                             }
+=======
 
-                            console.log(elem[j][key] + ":" + schema[key][i]+"("+isTrue+")");
+                        return blogs.count({_id: ObjectId(el)}).then(function(count){
+                            var value = count>0;
+                            return objWrap(el,value,"exist");
+                        });
+
+                        //countDocs.push(count>0);
+
+            };
+            function objWrap(el,key,value,name) {
+                var obj = {};
+                obj[elkey+"("+name+")"] = value;
+                return obj;
+            }
+            this.validate = function(elem,num, callback) {
+                var isTrue = [];
+                for (var key in schema) {
+                    for (var i = 0; i < schema[key].length; i++) {
+                        isTrue.push(this[schema[key][i] + "Validate"](elem[key],key));
+                    }
+                }
+                Promise.all(isTrue).then(function(results){
+>>>>>>> 676823e9cebaee051300a642fc31edaa17367e34
+
+                    var errArr = [];
+                    for (var t=0; t<results.length; t++) {
+                        for (var k in results[t]) {
+                            if (!results[t][k]) {
+                                errArr.push(results[t]);
+                            }
                         }
                     }
-                    if (!toggle) dataToSave.push(elem[j]);
-                }
-                console.log(errArr);
-                //console.log(dataToSave);
+                    console.log(errArr);
+                    if (errArr.length > 0) {
+                        callback(false,errArr);
+                    } else {
+                        //console.log(k);
+                        callback(true,num);
+                    }
+                });
             };
         }
-
-        //function idValidate(id){
-        //    var matches;
-        //    blogs.count({_id: ObjectId(id)}, function(err,count){
-        //         matches = count>0;
-        //        console.log(count);
-        //     });
-        //    //blogs.find({status: "new"}).toArray(function(err,res) {
-        //    //    //        //matches = count>0;
-        //    //    console.log(res);
-        //    //    //    });
-        //    //    //return matches;
-        //    //});
-        //}
 
         function writeTo() {
             blogs.insert(dataToSave);
@@ -96,6 +131,7 @@ http.createServer(function (req, res) {
 
         switch(req.method) {
             case 'GET':
+<<<<<<< HEAD
                 //var y =false;
                 //var str= "5601201ba7b8dbdf6aaa970c";
                 //    blogs.count({_id: ObjectId(str)},function(err, count){
@@ -103,6 +139,8 @@ http.createServer(function (req, res) {
                 //        console.log(str, y, count);
                 //});
                 //blogs.find({_id: ObjectId("5601201ba7b8dbdf6aaa970c")})
+=======
+>>>>>>> 676823e9cebaee051300a642fc31edaa17367e34
                 blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
                     .toArray(function (err,results) {
                         //console.dir(results);
@@ -119,7 +157,19 @@ http.createServer(function (req, res) {
                     jsonPut = JSON.parse(chunk);
                     var valid = new Validator();
                     //valid["existValidate"] = idValidate;
-                    valid.validate(jsonPut);
+                    for(var j=0; j<jsonPut.length; j++){
+                        valid.validate(jsonPut[j],j, function(toggle,num){
+                            if (toggle) {
+                                //console.log(jsonPut[num]);
+                                //blogs.insert(jsonPut[j]);
+                            } else {
+                                //console.log("This document has errors")
+                            }
+
+                        });
+
+                    }
+
                     //console.log(jsonPut);
                 });
                 break;
