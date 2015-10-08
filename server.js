@@ -45,20 +45,16 @@ http.createServer(function (req, res) {
                 //     //matches = count>0;
                 //     console.log(count);
                 // });
-                var matches;
+                //matches=false;
                 blogs.count({_id: ObjectId(el)},function(err,count){
-                    matches = count>0;
-                    console.log(matches);
+                    matches = (count>0);
+                    console.log(count);
                 });
-                return matches;
+                //console.log(matches);
+                //return matches;
             };
             this.validate = function(elem) {
                 var errArr = [];
-
-                //blogs.count({status:"new"}, function(err,count){
-                //    //matches = count>0;
-                //    console.log(count);
-                //});
                 for (var j=0;j<elem.length;j++) {
                     var toggle=0;
                     for (var key in schema) {
@@ -100,12 +96,12 @@ http.createServer(function (req, res) {
 
         switch(req.method) {
             case 'GET':
-                var y =false;
-                var str= "5601201ba7b8dbdf6aaa970c";
-                    blogs.count({_id: ObjectId(str)},function(err, count){
-                    y= count>0;
-                        console.log(str, y, count);
-                });
+                //var y =false;
+                //var str= "5601201ba7b8dbdf6aaa970c";
+                //    blogs.count({_id: ObjectId(str)},function(err, count){
+                //    y= count>0;
+                //        console.log(str, y, count);
+                //});
                 //blogs.find({_id: ObjectId("5601201ba7b8dbdf6aaa970c")})
                 blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
                     .toArray(function (err,results) {
@@ -114,7 +110,7 @@ http.createServer(function (req, res) {
                         res.writeHead(200, {"Content-Type": "application/json"});
                         res.end(jsonGet);
                         console.log("GET");
-                        db.close();
+                        //db.close();
                     });
                 break;
             case 'PUT':
@@ -129,7 +125,7 @@ http.createServer(function (req, res) {
                 break;
         }
 
-        //blogs.insert( {
+        //blogs.insertMany( [{
         //    domain: "domain6.com/page",
         //    originDomain: "domain6.com",
         //    engine: "Presta",
@@ -139,8 +135,7 @@ http.createServer(function (req, res) {
         //    metaKeywords: "metakey1 metakey2 metakey3",
         //    status: "queued",
         //    queuedTime: new Date()
-        //},function(err, results){
-        //    if (err) throw err;
+        //},
         //    {
         //        domain: "domain2.com/page",
         //        originDomain: "domain2.com",
@@ -182,7 +177,9 @@ http.createServer(function (req, res) {
         //        metaKeywords: "metakey1 metakey2 metakey3",
         //        status: "queued",
         //        queuedTime: new Date()
-        //    }]
+        //    }],function(err, results) {
+        //    if (err) throw err;
+        //});
 
 
         //if (!Object.keys(queryAsObject).length) console.log("Empty obj");
