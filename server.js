@@ -56,32 +56,6 @@ http.createServer(function (req, res) {
             };
 
             this["existValidate"] = function(el){
-<<<<<<< HEAD
-                //collection.count({_id: ObjectId("5601201ba7b8dbdf6aaa970c")}, function(err,count){
-                //     //matches = count>0;
-                //     console.log(count);
-                // });
-                //matches=false;
-                blogs.count({_id: ObjectId(el)},function(err,count){
-                    matches = (count>0);
-                    console.log(count);
-                });
-                //console.log(matches);
-                //return matches;
-            };
-            this.validate = function(elem) {
-                var errArr = [];
-                for (var j=0;j<elem.length;j++) {
-                    var toggle=0;
-                    for (var key in schema) {
-                        for (var i = 0; i < schema[key].length; i++) {
-                            var isTrue = this[schema[key][i] + "Validate"](elem[j][key]);
-
-                            if (!isTrue) {
-                                errArr.push("recordId:" + elem[j]["_id"] + ":" + key + ":" + elem[j][key] + ":" + schema[key][i] + "(" + isTrue + ")");
-                                toggle = 1;
-                            }
-=======
 
                         return blogs.count({_id: ObjectId(el)}).then(function(count){
                             var value = count>0;
@@ -104,7 +78,6 @@ http.createServer(function (req, res) {
                     }
                 }
                 Promise.all(isTrue).then(function(results){
->>>>>>> 676823e9cebaee051300a642fc31edaa17367e34
 
                     var errArr = [];
                     for (var t=0; t<results.length; t++) {
@@ -131,16 +104,6 @@ http.createServer(function (req, res) {
 
         switch(req.method) {
             case 'GET':
-<<<<<<< HEAD
-                //var y =false;
-                //var str= "5601201ba7b8dbdf6aaa970c";
-                //    blogs.count({_id: ObjectId(str)},function(err, count){
-                //    y= count>0;
-                //        console.log(str, y, count);
-                //});
-                //blogs.find({_id: ObjectId("5601201ba7b8dbdf6aaa970c")})
-=======
->>>>>>> 676823e9cebaee051300a642fc31edaa17367e34
                 blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
                     .toArray(function (err,results) {
                         //console.dir(results);
@@ -148,7 +111,7 @@ http.createServer(function (req, res) {
                         res.writeHead(200, {"Content-Type": "application/json"});
                         res.end(jsonGet);
                         console.log("GET");
-                        //db.close();
+                        db.close();
                     });
                 break;
             case 'PUT':
@@ -175,7 +138,7 @@ http.createServer(function (req, res) {
                 break;
         }
 
-        //blogs.insertMany( [{
+        //blogs.insert( {
         //    domain: "domain6.com/page",
         //    originDomain: "domain6.com",
         //    engine: "Presta",
@@ -185,7 +148,8 @@ http.createServer(function (req, res) {
         //    metaKeywords: "metakey1 metakey2 metakey3",
         //    status: "queued",
         //    queuedTime: new Date()
-        //},
+        //},function(err, results){
+        //    if (err) throw err;
         //    {
         //        domain: "domain2.com/page",
         //        originDomain: "domain2.com",
@@ -227,9 +191,7 @@ http.createServer(function (req, res) {
         //        metaKeywords: "metakey1 metakey2 metakey3",
         //        status: "queued",
         //        queuedTime: new Date()
-        //    }],function(err, results) {
-        //    if (err) throw err;
-        //});
+        //    }]
 
 
         //if (!Object.keys(queryAsObject).length) console.log("Empty obj");
