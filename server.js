@@ -81,7 +81,7 @@ http.createServer(function (req, res) {
                 }
 
 
-                console.log(errArr);
+                //console.log(errArr);
                 return errArr;
                 //Promise.all(isTrue).then(function(results){
                 //    console.log(results);
@@ -126,18 +126,31 @@ http.createServer(function (req, res) {
                     jsonPut = JSON.parse(chunk);
                     var valid = new Validator();
                     var docErrArr;
+                    var uptadeArr = [];
+
                     for(var j=0; j<jsonPut.length; j++){
+                        var tempObj = {};
                         docErrArr = valid.validate(jsonPut[j]);
                         if (docErrArr.length >0) {
+                            docErrArr = JSON.stringify(docErrArr);
                             res.end(docErrArr);
                             return;
                         }
+                        tempObj._id = jsonPut[j]._id;
+                        tempObj["params"] = {};
+                        for(var k in jsonPut[j]) {
+                            if (k != "_id"){
+                                tempObj["params"][k] = jsonPut[j][k];
+                            }
+                        }
+                        uptadeArr.push(tempObj);
                     }
-                    for
-                    blogs.update(jsonPut,{w:1, multi: true},function(err, result){
-                        console.log(result);
-                        console.log(err);
-                    });
+                    for (var a=0;a<uptadeArr.length; a++){
+                            blogs.update(uptadeArr[a]._id, uptadeArr[a].params, function (err, result) {
+                            console.log(result);
+                            console.log(err);
+                        });
+                    }
                     //console.log(jsonPut);
                 });
         }
