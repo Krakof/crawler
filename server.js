@@ -20,7 +20,7 @@ http.createServer(function (req, res) {
         var jsonGet = {},
             jsonPut = {};
         var schema = {
-            _id:["required", "string", "exist"],
+            _id:["required", "string"],
             domain: ["required", "string"],
             originDomain: ["required", "string"],
             engine: ["required", "string"],
@@ -34,67 +34,73 @@ http.createServer(function (req, res) {
         var countDocs=[];
         function Validator () {
             this["requiredValidate"] = function (el) {
-                //return (el)||(el === 0)? true:false;
-                return new Promise(function(resolve,reject){
-                    var value = (el)||(el === 0)? true:false;
-                    resolve(objWrap(el,value,"required"));
-                })
+                var value = (el)||(el === 0)? true:false;
+                return objWrap(value,"required")
             };
 
             this["stringValidate"] = function (el) {
-                return new Promise(function(resolve,reject){
-                    var value = (typeof el === "string");
-                    resolve(objWrap(el,value,"string"));
-                })
+                var value = (typeof el === "string");
+                return objWrap(value,"string")
             };
 
             this["numberValidate"] = function (el,key) {
-                return new Promise(function(resolve,reject){
-                    var value = (typeof el === "number");
-                   resolve(objWrap(el,key,value,"number"))
-                });
+                   var value = (typeof el === "number");
+                   return objWrap(value,"number")
             };
 
-            this["existValidate"] = function(el){
-
-                        return blogs.count({_id: ObjectId(el)}).then(function(count){
-                            var value = count>0;
-                            return objWrap(el,value,"exist");
-                        });
-
-                        //countDocs.push(count>0);
-
-            };
-            function objWrap(el,key,value,name) {
+            //this["existValidate"] = function(el){
+            //
+            //            return blogs.count({_id: ObjectId(el)}).then(function(count){
+            //                var value = count>0;
+            //                return objWrap(el,value,"exist");
+            //            });
+            //
+            //            //countDocs.push(count>0);
+            //
+            //};
+            function objWrap(value,name) {
                 var obj = {};
-                obj[elkey+"("+name+")"] = value;
-                return obj;
+                obj[name] = value;
+                return [obj, value];
             }
             this.validate = function(elem,num, callback) {
-                var isTrue = [];
+                var tempErr;
+                var errArr = [];
                 for (var key in schema) {
+                    var isTrue = [];
+                    var resObj ={};
                     for (var i = 0; i < schema[key].length; i++) {
-                        isTrue.push(this[schema[key][i] + "Validate"](elem[key],key));
-                    }
-                }
-                Promise.all(isTrue).then(function(results){
-
-                    var errArr = [];
-                    for (var t=0; t<results.length; t++) {
-                        for (var k in results[t]) {
-                            if (!results[t][k]) {
-                                errArr.push(results[t]);
-                            }
+                        tempErr = this[schema[key][i] + "Validate"](elem[key],key);
+                        if (!tempErr[1]){
+                            resObj.documentID =  elem["_id"];
+                            resObj[key] = tempErr[0];
+                            errArr.push(resObj);
+                            break;
                         }
                     }
-                    console.log(errArr);
-                    if (errArr.length > 0) {
-                        callback(false,errArr);
-                    } else {
-                        //console.log(k);
-                        callback(true,num);
-                    }
-                });
+                }
+
+
+                console.log(errArr);
+                return errArr;
+                //Promise.all(isTrue).then(function(results){
+                //    console.log(results);
+                //    var errArr = [];
+                //    for (var t=0; t<results.length; t++) {
+                //        for (var k in results[t]) {
+                //            if (!results[t][k]) {
+                //                errArr.push(results[t]);
+                //            }
+                //        }
+                //    }
+                //    //console.log(errArr);
+                //    if (errArr.length > 0) {
+                //        callback(false,errArr);
+                //    } else {
+                //        //console.log(k);
+                //        callback(true,num);
+                //    }
+                //});
             };
         }
 
@@ -119,23 +125,21 @@ http.createServer(function (req, res) {
                 req.on('data', function (chunk) {
                     jsonPut = JSON.parse(chunk);
                     var valid = new Validator();
-                    //valid["existValidate"] = idValidate;
+                    var docErrArr;
                     for(var j=0; j<jsonPut.length; j++){
-                        valid.validate(jsonPut[j],j, function(toggle,num){
-                            if (toggle) {
-                                //console.log(jsonPut[num]);
-                                //blogs.insert(jsonPut[j]);
-                            } else {
-                                //console.log("This document has errors")
-                            }
-
-                        });
-
+                        docErrArr = valid.validate(jsonPut[j]);
+                        if (docErrArr.length >0) {
+                            res.end(docErrArr);
+                            return;
+                        }
                     }
-
+                    for
+                    blogs.update(jsonPut,{w:1, multi: true},function(err, result){
+                        console.log(result);
+                        console.log(err);
+                    });
                     //console.log(jsonPut);
                 });
-                break;
         }
 
         //blogs.insert( {
