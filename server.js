@@ -5,10 +5,16 @@ var MongoClient = require('mongodb').MongoClient
 var ObjectId = require('mongodb').ObjectID;
 var Promise = require('promise');
 var monk = require('monk');
-var db= monk('localhost:27017/crawler');
+var urlDb = 'mongodb://localhost:27017/crawler';
+//var db= monk('localhost:27017/crawler');
+MongoClient.connect(urlDb, function(err, database) {
+    if (err) throw err;
+    db = database;
+    console.log("Connected correctly to server");
+});
 
 http.createServer(function (req, res) {
-        var blogs = db.get("Blogs");
+        var blogs = db.collection("Blogs");
         var halfHour = new Date(new Date() - new Date(30*60000));
         var jsonGet = {},
             jsonPut = {};
@@ -24,6 +30,7 @@ http.createServer(function (req, res) {
             status: ["required", "string"]
         };
         var dataToSave = [];
+        var countDocs=[];
         function Validator () {
             this["requiredValidate"] = function (el) {
                 var value = (el)||(el === 0)? true:false;
@@ -64,19 +71,29 @@ http.createServer(function (req, res) {
             };
         }
 
-        function writeTo() {
-            blogs.insert(dataToSave);
-        }
-
         switch(req.method) {
             case 'GET':
-                blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]})
+                var count = parseInt(url.parse(req.url,true).query.n);
+                blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]}).limit(count)
                     .toArray(function (err,results) {
                         jsonGet = JSON.stringify(results);
                         res.writeHead(200, {"Content-Type": "application/json"});
                         res.end(jsonGet);
                         console.log("GET");
-                        db.close();
+                        if (results.length>0) {
+                            for (var c = 0; c < results.length; c++) {
+                                blogs.update({"_id": ObjectId(results[c]._id)}, {
+                                    $set: {
+                                        status: "queued",
+                                        queuedTime: new Date()
+                                    }
+                                }, {fullresult: true}, function (err, result) {
+                                    if (err) {
+                                        console.log(err.message);
+                                    }
+                                });
+                            }
+                        }
                     });
                 break;
             case 'PUT':
@@ -99,16 +116,22 @@ http.createServer(function (req, res) {
                         tempObj["params"] = {};
                         for(var k in jsonPut[j]) {
                             if (k != "_id"){
-                                tempObj["params"][k] = jsonPut[j][k];
+                                if (k === "status") {
+                                    tempObj["params"][k] = "done";
+                                } else {
+                                    tempObj["params"][k] = jsonPut[j][k];
+                                }
                             }
                         }
                         uptadeArr.push(tempObj);
                     }
                     for (var a=0;a<uptadeArr.length; a++){
-                        console.log(uptadeArr[a]._id);
-                            blogs.update(uptadeArr[a]._id, uptadeArr[a].params, function (err, result) {
-                            console.log(result);
-                            console.log(err);
+                            blogs.update({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
+                            if (err){
+                                res.end(JSON.stringify(err.message));
+                            } else {
+                                console.log(r.result.n);
+                            }
                         });
                     }
                 });
