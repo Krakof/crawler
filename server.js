@@ -81,7 +81,11 @@ http.createServer(function (req, res) {
                 }
 
 
+<<<<<<< HEAD
                 console.log(errArr);
+=======
+                //console.log(errArr);
+>>>>>>> 688ab99a20037f97ba75b27d6acfb7ee15ff200a
                 return errArr;
                 //Promise.all(isTrue).then(function(results){
                 //    console.log(results);
@@ -126,6 +130,7 @@ http.createServer(function (req, res) {
                     jsonPut = JSON.parse(chunk);
                     var valid = new Validator();
                     var docErrArr;
+<<<<<<< HEAD
                     for(var j=0; j<jsonPut.length; j++){
                         docErrArr = valid.validate(jsonPut[j]);
                         if (docErrArr.length >0) {
@@ -138,6 +143,33 @@ http.createServer(function (req, res) {
                         console.log(result);
                         console.log(err);
                     });
+=======
+                    var uptadeArr = [];
+
+                    for(var j=0; j<jsonPut.length; j++){
+                        var tempObj = {};
+                        docErrArr = valid.validate(jsonPut[j]);
+                        if (docErrArr.length >0) {
+                            docErrArr = JSON.stringify(docErrArr);
+                            res.end(docErrArr);
+                            return;
+                        }
+                        tempObj._id = jsonPut[j]._id;
+                        tempObj["params"] = {};
+                        for(var k in jsonPut[j]) {
+                            if (k != "_id"){
+                                tempObj["params"][k] = jsonPut[j][k];
+                            }
+                        }
+                        uptadeArr.push(tempObj);
+                    }
+                    for (var a=0;a<uptadeArr.length; a++){
+                            blogs.update(uptadeArr[a]._id, uptadeArr[a].params, function (err, result) {
+                            console.log(result);
+                            console.log(err);
+                        });
+                    }
+>>>>>>> 688ab99a20037f97ba75b27d6acfb7ee15ff200a
                     //console.log(jsonPut);
                 });
         }
