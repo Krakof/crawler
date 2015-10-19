@@ -3,10 +3,7 @@ var url = require("url");
 var MongoClient = require('mongodb').MongoClient
     , assert = require('assert');
 var ObjectId = require('mongodb').ObjectID;
-var Promise = require('promise');
-var monk = require('monk');
 var urlDb = 'mongodb://localhost:27017/crawler';
-//var db= monk('localhost:27017/crawler');
 MongoClient.connect(urlDb, function(err, database) {
     if (err) throw err;
     db = database;
@@ -25,12 +22,10 @@ http.createServer(function (req, res) {
             engine: ["required", "string"],
             pr: ["required", "number"],
             trustflow: ["required", "number"],
-            keywords: ["required", "string"],
-            metaKeywords: ["required", "string"],
+            keywords: ["string"],
+            metaKeywords: ["string"],
             status: ["required", "string"]
         };
-        var dataToSave = [];
-        var countDocs=[];
         function Validator () {
             this["requiredValidate"] = function (el) {
                 var value = (el)||(el === 0)? true:false;
@@ -38,11 +33,20 @@ http.createServer(function (req, res) {
             };
 
             this["stringValidate"] = function (el) {
-                var value = (typeof el === "string");
-                return objWrap(value,"string")
+                if (Array.isArray(el)) {
+                    for(var b=0; b<el.length; b++) {
+                        if (!stringEl(el[b])) {
+                            return objWrap(false,"string")
+                        }
+                    }
+                    return objWrap(true,"string")
+                } else {
+                    value = stringEl(el);
+                    return objWrap(value,"string")
+                }
             };
 
-            this["numberValidate"] = function (el,key) {
+            this["numberValidate"] = function (el) {
                    var value = (typeof el === "number");
                    return objWrap(value,"number")
             };
@@ -51,11 +55,14 @@ http.createServer(function (req, res) {
                 obj[name] = value;
                 return [obj, value];
             }
-            this.validate = function(elem,num, callback) {
+            function stringEl (elem) {
+                var value = (typeof elem === "string");
+                return value;
+            }
+            this.validate = function(elem) {
                 var tempErr;
                 var errArr = [];
                 for (var key in schema) {
-                    var isTrue = [];
                     var resObj ={};
                     for (var i = 0; i < schema[key].length; i++) {
                         tempErr = this[schema[key][i] + "Validate"](elem[key],key);
@@ -73,7 +80,8 @@ http.createServer(function (req, res) {
 
         switch(req.method) {
             case 'GET':
-                var count = parseInt(url.parse(req.url,true).query.n);
+                var n= parseInt(url.parse(req.url,true).query.n);
+                var count = (n)?n:10;
                 blogs.find({$or: [{status: "new"},{$and: [{status:"queued"}, {queuedTime: {$lt: halfHour}}]}]}).limit(count)
                     .toArray(function (err,results) {
                         jsonGet = JSON.stringify(results);
@@ -81,18 +89,18 @@ http.createServer(function (req, res) {
                         res.end(jsonGet);
                         console.log("GET");
                         if (results.length>0) {
-                            for (var c = 0; c < results.length; c++) {
-                                blogs.update({"_id": ObjectId(results[c]._id)}, {
-                                    $set: {
-                                        status: "queued",
-                                        queuedTime: new Date()
-                                    }
-                                }, {fullresult: true}, function (err, result) {
-                                    if (err) {
-                                        console.log(err.message);
-                                    }
-                                });
-                            }
+                           for (var c = 0; c < results.length; c++) {
+                               blogs.update({"_id": ObjectId(results[c]._id)}, {
+                                   $set: {
+                                       status: "queued",
+                                       queuedTime: new Date()
+                                   }
+                               }, {fullresult: true}, function (err, result) {
+                                   if (err) {
+                                       console.log(err.message);
+                                   }
+                               });
+                           }
                         }
                     });
                 break;
@@ -109,6 +117,8 @@ http.createServer(function (req, res) {
                         docErrArr = valid.validate(jsonPut[j]);
                         if (docErrArr.length >0) {
                             docErrArr = JSON.stringify(docErrArr);
+                            console.log(docErrArr);
+                            res.writeHead(422, {"Content-Type": "application/json"});
                             res.end(docErrArr);
                             return;
                         }
@@ -128,8 +138,10 @@ http.createServer(function (req, res) {
                     for (var a=0;a<uptadeArr.length; a++){
                             blogs.update({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
                             if (err){
+                                res.writeHead(422, {"Content-Type": "application/json"});
                                 res.end(JSON.stringify(err.message));
                             } else {
+                                res.writeHead(200, {"Content-Type": "application/json"});
                                 console.log(r.result.n);
                             }
                         });
