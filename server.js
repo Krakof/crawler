@@ -46,7 +46,7 @@ http.createServer(function (req, res) {
                 }
             };
 
-            this["numberValidate"] = function (el) {
+            this["numberValidate"] = function (el,key) {
                    var value = (typeof el === "number");
                    return objWrap(value,"number")
             };
@@ -107,7 +107,13 @@ http.createServer(function (req, res) {
             case 'PUT':
                 console.log("PUT");
                 req.on('data', function (chunk) {
-                    jsonPut = JSON.parse(chunk);
+                    try {
+                        jsonPut = JSON.parse(chunk);
+                    } catch (err) {
+                        res.writeHead(422, {"Content-Type": "application/json"});
+                        res.end(err.name);
+                        return;
+                    }
                     var valid = new Validator();
                     var docErrArr;
                     var uptadeArr = [];
@@ -115,6 +121,7 @@ http.createServer(function (req, res) {
                     for(var j=0; j<jsonPut.length; j++){
                         var tempObj = {};
                         docErrArr = valid.validate(jsonPut[j]);
+                        console.log(jsonPut[j]);
                         if (docErrArr.length >0) {
                             docErrArr = JSON.stringify(docErrArr);
                             console.log(docErrArr);
@@ -135,17 +142,20 @@ http.createServer(function (req, res) {
                         }
                         uptadeArr.push(tempObj);
                     }
+                    console.log(uptadeArr.length);
                     for (var a=0;a<uptadeArr.length; a++){
                             blogs.update({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
                             if (err){
                                 res.writeHead(422, {"Content-Type": "application/json"});
                                 res.end(JSON.stringify(err.message));
+                                return;
                             } else {
-                                res.writeHead(200, {"Content-Type": "application/json"});
                                 console.log(r.result.n);
                             }
                         });
                     }
+                    res.writeHead(200, {"Content-Type": "application/json"});
+                    res.end("Input done");
                 });
         }
 }).listen(2000);
