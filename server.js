@@ -110,6 +110,7 @@ http.createServer(function (req, res) {
                     try {
                         jsonPut = JSON.parse(chunk);
                     } catch (err) {
+                        console.log("Invalid json");
                         res.writeHead(422, {"Content-Type": "application/json"});
                         res.end(err.name);
                         return;
@@ -146,6 +147,7 @@ http.createServer(function (req, res) {
                     for (var a=0;a<uptadeArr.length; a++){
                             blogs.update({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
                             if (err){
+                                console.log("DB update Error");
                                 res.writeHead(422, {"Content-Type": "application/json"});
                                 res.end(JSON.stringify(err.message));
                                 return;
