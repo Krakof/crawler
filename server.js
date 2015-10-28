@@ -87,7 +87,7 @@ http.createServer(function (req, res) {
                         res.writeHead(200, {'Content-Type': 'image/x-icon'});
                         res.end();
                         break;
-                    case "/reset?":
+                    case "/reset":
                         blogs.deleteMany({},function(err, results) {
                             if (err) throw err;
                             console.log(results.deletedCount);
