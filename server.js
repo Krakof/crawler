@@ -93,7 +93,6 @@ http.createServer(function (req, res) {
                             console.log(results.deletedCount);
                             var sitesArr = [];
                             var counter = 0;
-                            console.log(results.deletedCount);
                             var rl = require('readline').createInterface({
                                 input: require('fs').createReadStream('sites.txt')
                             });
@@ -103,7 +102,7 @@ http.createServer(function (req, res) {
                                 objDB.status = "new";
                                 sitesArr.push(objDB);
                                 counter++;
-                                if (counter === 20000) {
+                                if (counter === 10000) {
                                     blogs.insertMany(sitesArr, function (err, r) {
                                         if (err) throw err;
                                     });
@@ -114,7 +113,6 @@ http.createServer(function (req, res) {
                             rl.on('close', function(){
                                 blogs.insertMany(sitesArr, function (err, r) {
                                     if (err) throw err;
-                                    console.log(r.insertedCount);
                                     res.writeHead(200, {'Content-Type': 'image/x-icon'});
                                     res.end("Insert DB Done");
                                 });
@@ -126,15 +124,18 @@ http.createServer(function (req, res) {
                         var statusCount = [];
                                 blogs.count({status:"new"},function (err, result) {
                                     statObj["new"]=result;
-                                    blogs.count({status:"queued"},function (err, result) {
+                                    blogs.count({status:"queued", queuedTime: {$gt: halfHour}},function (err, result) {
                                         statObj["queued"]=result;
                                         blogs.count({status:"done"},function (err, result) {
                                             statObj["done"]=result;
-                                            statusCount.push(statObj);
-                                            statusCount = JSON.stringify(statusCount);
-                                            console.log(statusCount);
-                                            res.writeHead(200, {"Content-Type": "application/json"});
-                                            res.end(statusCount);
+                                            blogs.count({status: "queued", queuedTime: {$lt: halfHour}},function(err, result){
+                                                statObj["timeout"]=result;
+                                                statusCount.push(statObj);
+                                                statusCount = JSON.stringify(statusCount);
+                                                console.log(statusCount);
+                                                res.writeHead(200, {"Content-Type": "application/json"});
+                                                res.end(statusCount);
+                                                });
                                             });
                                         });
                                     });
@@ -174,6 +175,11 @@ http.createServer(function (req, res) {
                 req.on('end', function () {
                     try {
                         jsonPut = JSON.parse(data);
+                        if (!jsonPut) {
+                            res.writeHead(422, {"Content-Type": "application/json"});
+                            res.end("JSON err: " + jsonPut);
+                            return console.log(jsonPut);
+                        }
                     } catch (err) {
                         console.log(err);
                         fs.writeFile("text.json", data, function(err) {
@@ -217,6 +223,7 @@ http.createServer(function (req, res) {
                     console.timeEnd("validate");
                     console.log("For DB Update: " + uptadeArr.length);
                     for (var a=0;a<uptadeArr.length; a++){
+                            //console.time("Insert DB");
                             blogs.updateOne({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
                             if (err){
                                 console.log("DB update Error");
@@ -224,10 +231,12 @@ http.createServer(function (req, res) {
                                 res.end(JSON.stringify(err.message));
                                 return;
                             } else {
+                                //console.timeEnd("Insert DB");
                                 //console.log(r.result.n);
                             }
                         });
                     }
+                    
                     res.writeHead(200, {"Content-Type": "application/json"});
                     res.end("Input of " + uptadeArr.length + " documents: done");
                 });
