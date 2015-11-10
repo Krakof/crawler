@@ -174,11 +174,12 @@ http.createServer(function (req, res) {
                 console.log("PUT");
                 req.on('end', function () {
                     try {
+
                         jsonPut = JSON.parse(data);
                         if (!jsonPut) {
                             res.writeHead(422, {"Content-Type": "application/json"});
                             res.end("JSON err: " + jsonPut);
-                            return console.log(jsonPut);
+                            return console.log(JSON.stringify(jsonPut));
                         }
                     } catch (err) {
                         console.log(err);
@@ -241,6 +242,7 @@ http.createServer(function (req, res) {
                     res.end("Input of " + uptadeArr.length + " documents: done");
                 });
                 break;
-        }
+         
+        }   
 }).listen(2000);
 console.log('Server running at http://127.0.0.1:2000/');
