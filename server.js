@@ -143,14 +143,14 @@ http.createServer(function (req, res) {
                     var count = (n) ? n : 10;
                     blogs.find({$or: [{status: "new"}, {$and: [{status: "queued"}, {queuedTime: {$lt: halfHour}}]}]}).limit(count)
                         .toArray(function (err, results) {
+                            var qnty = 0;
                             console.log("Sent: " + results.length);
                             jsonGet = JSON.stringify(results);
                             res.writeHead(200, {"Content-Type": "application/json"});
                             res.end(jsonGet);
-                            stats.updateOne({"status":"queued"},{$inc: {"qty": results.length}});
-                            stats.updateOne({"status":"new"},{$inc: {"qty": -results.length}});
                             if (results.length > 0) {
                                 for (var c = 0; c < results.length; c++) {
+                                    if (results[c].status == "new") qnty++;
                                     blogs.updateOne({"_id": ObjectId(results[c]._id)}, {
                                         $set: {
                                             status: "queued",
@@ -162,6 +162,9 @@ http.createServer(function (req, res) {
                                         }
                                     });
                                 }
+                                console.log(qnty);
+                                stats.updateOne({"status":"queued"},{$inc: {"qty": qnty}});
+                                stats.updateOne({"status":"new"},{$inc: {"qty": -qnty}});
                             }
                         });
             }
