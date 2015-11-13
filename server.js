@@ -140,6 +140,7 @@ http.createServer(function (req, res) {
                     break;
                 default:
                     var n = parseInt(url.parse(req.url, true).query.n);
+                    console.log(n);
                     var count = (n) ? n : 10;
                     blogs.find({$or: [{status: "new"}, {$and: [{status: "queued"}, {queuedTime: {$lt: halfHour}}]}]}).limit(count)
                         .toArray(function (err, results) {
@@ -150,24 +151,24 @@ http.createServer(function (req, res) {
                             res.end(jsonGet);
                             if (results.length > 0) {
                                 for (var c = 0; c < results.length; c++) {
-                                    if (results[c].status == "new") qnty++;
-                                    blogs.updateOne({"_id": ObjectId(results[c]._id)}, {
-                                        $set: {
-                                            status: "queued",
-                                            queuedTime: new Date()
-                                        }
-                                    }, {fullresult: true}, function (err, r) {
-                                        if (err) {
-                                            console.log(err.message);
-                                        }
+                                    blogs.updateOne({"_id": ObjectId(results[c]._id)},
+                                        {$set: {
+                                                status: "queued",
+                                                queuedTime: new Date()
+                                            }
+                                        }, {fullresult: true}, function (err, r) {
+                                            if (err) {
+                                                console.log(err.message);
+                                            }
                                     });
+                                    if (results[c].status === "new") qnty++;
                                 }
                                 console.log(qnty);
                                 stats.updateOne({"status":"queued"},{$inc: {"qty": qnty}}, function(err,r){
-                                    console.log("New docs to queued: "+r.result.n);
+                                    //console.log("New docs to queued: "+qnty);
                                 });
                                 stats.updateOne({"status":"new"},{$inc: {"qty": -qnty}}, function(err,r){
-                                    console.log("New docs changed status: "+r.result.n);
+                                    //console.log("New docs changed status: "+qnty);
                                 });
                             }
                         });
@@ -245,6 +246,9 @@ http.createServer(function (req, res) {
                                 if (err) throw err;
                             });
                             stats.updateOne({"status":"done"},{$inc:{"qty": -1}}, function(err,r){
+                                if (err) throw err;
+                            });
+                            stats.updateOne({"status":"errors"},{$inc:{"qty": 1}}, function(err,r){
                                 if (err) throw err;
                             });
                             res.writeHead(422, {"Content-Type": "application/json"});
