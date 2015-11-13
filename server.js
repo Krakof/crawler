@@ -163,8 +163,12 @@ http.createServer(function (req, res) {
                                     });
                                 }
                                 console.log(qnty);
-                                stats.updateOne({"status":"queued"},{$inc: {"qty": qnty}});
-                                stats.updateOne({"status":"new"},{$inc: {"qty": -qnty}});
+                                stats.updateOne({"status":"queued"},{$inc: {"qty": qnty}}, function(err,r){
+                                    console.log("New docs to queued: "+r.result.n);
+                                });
+                                stats.updateOne({"status":"new"},{$inc: {"qty": -qnty}}, function(err,r){
+                                    console.log("New docs changed status: "+r.result.n);
+                                });
                             }
                         });
             }
@@ -200,7 +204,7 @@ http.createServer(function (req, res) {
                 var valid = new Validator();
                 var docErrArr;
                 var uptadeArr = [];
-                console.time("validate");
+                //console.time("validate");
                 for(var j=0; j<jsonPut.length; j++){
                     var tempObj = {};
                     docErrArr = valid.validate(jsonPut[j]);
@@ -224,24 +228,36 @@ http.createServer(function (req, res) {
                     }
                     uptadeArr.push(tempObj);
                 }
-                console.timeEnd("validate");
+                //console.timeEnd("validate");
                 console.log("For DB Update: " + uptadeArr.length);
                 for (var a=0;a<uptadeArr.length; a++){
                         //console.time("Insert DB");
                         blogs.updateOne({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
                         if (err){
                             console.log("DB update Error");
+                            fs.writeFile("text.json", err, function(err) {
+                                if(err) {
+                                    return console.log(err);
+                                }
+                                console.log("The errlog file was saved!");
+                            });
+                            stats.updateOne({"status":"queued"},{$inc: {"qty": 1}}, function(err,r){
+                                if (err) throw err;
+                            });
+                            stats.updateOne({"status":"done"},{$inc:{"qty": -1}}, function(err,r){
+                                if (err) throw err;
+                            });
                             res.writeHead(422, {"Content-Type": "application/json"});
                             res.end(JSON.stringify(err.message));
-                        } else {
-                            stats.updateOne({"status":"done"},{$inc:{qty: r.result.n}}, function(){});
-                            stats.updateOne({"status":"queued"},{$inc: {"qty": -r.result.n}}, function(){});
-                            //console.timeEnd("Insert DB");
-                            //console.log(r.result.n);
-
                         }
                     });
                 }
+                stats.updateOne({"status":"queued"},{$inc: {"qty": -uptadeArr.length}}, function(err,r){
+                    if (err) throw err;
+                });
+                stats.updateOne({"status":"done"},{$inc:{"qty": uptadeArr.length}}, function(err,r){
+                    if (err) throw err;
+                });
 
                 res.writeHead(200, {"Content-Type": "application/json"});
                 res.end("Input of " + uptadeArr.length + " documents: done");
