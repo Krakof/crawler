@@ -266,11 +266,7 @@ http.createServer(function (req, res) {
                     blogs.updateOne({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, function (err,r) {
                         if (err){
                             console.log("DB update Error");
-<<<<<<< HEAD
-                            fs.writeFile("text.json", uptadeArr[a].params, function(err) {
-=======
                             fs.appendFile("err.log", JSON.stringify(err) + "\n", function(err) {
->>>>>>> b48fdeb444ce1ee4d27ee751e15d5823c2b7b8d3
                                 if(err) {
                                     return console.log(err);
                                 }
