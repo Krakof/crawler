@@ -236,7 +236,7 @@ http.createServer(function (req, res) {
                         blogs.updateOne({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, {fullResult: true},function (err,r) {
                         if (err){
                             console.log("DB update Error");
-                            fs.writeFile("text.json", err, function(err) {
+                            fs.writeFile("text.json", uptadeArr[a].params, function(err) {
                                 if(err) {
                                     return console.log(err);
                                 }
