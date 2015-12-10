@@ -6,7 +6,8 @@ var fs = require('fs');
 var ObjectId = require('mongodb').ObjectID;
     function Stats() {
         console.log("Stats request");
-        var blogs = db.collection("Blogs");
+        //var blogs = db.collection("Blogs");
+        var blogs = db.collection("BlogsDE");
         var stats = db.collection("dbStats");
         var halfHour = new Date(new Date() - new Date(30*60000));
         var statObj = {};
@@ -33,14 +34,13 @@ var urlDb = 'mongodb://localhost:27017/crawler';
 MongoClient.connect(urlDb, function(err, database) {
     if (err) throw err;
     db = database;
-
     console.log("Connected correctly to server");
-
     setInterval(Stats, 600000);
 });
 
 http.createServer(function (req, res) {
-    var blogs = db.collection("Blogs");
+    //var blogs = db.collection("Blogs");
+    var blogs = db.collection("BlogsDE");
     var stats = db.collection("dbStats");
     var halfHour = new Date(new Date() - new Date(30*60000));
     var jsonGet = {},
@@ -52,6 +52,7 @@ http.createServer(function (req, res) {
         engine: ["required", "string"],
         pr: ["required", "number"],
         trustflow: ["required", "number"],
+        //ot:["required", "number"]
         keywords: ["string"],
         metaKeywords: ["string"],
         status: ["required", "string"]
@@ -123,12 +124,20 @@ http.createServer(function (req, res) {
                         var sitesArr = [];
                         var counter = 0;
                         var rl = require('readline').createInterface({
-                            input: require('fs').createReadStream('sites.txt')
+                            input: require('fs').createReadStream('sitesDE.txt')
                         });
                         rl.on('line', function (line) {
                             var objDB = {};
-                            objDB.domain = line.trim();
                             objDB.status = "new";
+                            objDB.domain = line.trim();
+
+                            //Insert JSON
+
+                            // var jsonPut = JSON.parse(line);
+                            // for (var key in jsonPut) {
+                            //     objDB[key] = jsonPut[key];
+                            // }
+
                             sitesArr.push(objDB);
                             counter++;
                             if (counter === 10000) {
@@ -166,6 +175,16 @@ http.createServer(function (req, res) {
                         .toArray(function (err, results) {
                             var qnty = 0;
                             console.log("Sent: " + results.length);
+
+                            // For Organic traffic parse enable
+
+                            // for (var m=0; m<results.length; m++) {
+                            //     delete results[m].keywords;
+                            //     delete results[m].metaKeywords;
+                            //     delete results[m].engine;
+                            //     delete results[m].originDomain;
+                            // }
+
                             jsonGet = JSON.stringify(results);
                             res.writeHead(200, {"Content-Type": "application/json"});
                             res.end(jsonGet);
@@ -247,15 +266,15 @@ http.createServer(function (req, res) {
                     blogs.updateOne({"_id":ObjectId(uptadeArr[a]._id)}, {$set:uptadeArr[a].params}, function (err,r) {
                         if (err){
                             console.log("DB update Error");
-                            fs.appendFile("err.log", err + "\n" + sizeof(uptadeArr[a].params) + "\n", function(err) {
+                            fs.appendFile("err.log", JSON.stringify(err) + "\n", function(err) {
                                 if(err) {
                                     return console.log(err);
                                 }
                                 console.log("The errlog file was saved!");
                             });
-                            stats.updateOne({"status":"errors"},{$inc:{"qty": 1}}, function(err,r){
-                               if (err) throw err;
-                            });
+                            // stats.updateOne({"status":"errors"},{$inc:{"qty": 1}}, function(err,r){
+                            //    if (err) throw err;
+                            // });
                             res.writeHead(422, {"Content-Type": "application/json"});
                             res.end(JSON.stringify(err.message));
                         }
