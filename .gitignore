@@ -5,3 +5,8 @@
 .idea/vcs.xml
 .idea/workspace.xml
 node_modules/*
+merge.js
+parseWarc.js
+test.warc
+warc/CC-MAIN-20151001215752-00000-ip-10-137-6-227.ec2.internal.warc
+warc/CC-MAIN-20151001215752-00000-ip-10-137-6-227.ec2.internal.warc.gz
